@@ -2,7 +2,7 @@ FROM ubuntu:16.04
 MAINTAINER Brian Stoots <bstoots@gmail.com>
 
 # Install required packages to make it go
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
   build-essential \
   cmake \
   gnutls-bin gnutls-dev \
@@ -16,15 +16,23 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /var/tmp
 RUN wget https://github.com/anope/anope/releases/download/2.0.5/anope-2.0.5-source.tar.gz && tar xf anope-2.0.5-source.tar.gz
 
-# Configure
+# Configure, make, and install
 WORKDIR /var/tmp/anope-2.0.5-source
 RUN cmake \
-  # cmake options
   -DINSTDIR:STRING=/opt/anope \
   -DDEFUMASK:STRING=077 \
   -DCMAKE_BUILD_TYPE:STRING=RELEASE \
   -DUSE_RUN_CC_PL:BOOLEAN=ON \
-  # make / install
   && make && make install
 
-# RUN rm -rf /var/tmp/anope-2.0.5-source
+# Change into user mode
+RUN chown irc:irc -R /opt/anope
+USER irc:irc
+WORKDIR /opt/anope
+
+VOLUME ["/opt/anope/conf"]
+
+EXPOSE 7000
+
+ENTRYPOINT ["bin/services"]
+CMD ["--nofork"]
